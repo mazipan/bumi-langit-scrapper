@@ -1,6 +1,4 @@
 const fs = require('fs');
-const path = require('path');
-const appRootDir = require('app-root-dir');
 
 const writeFile = (pathFile, content) => {
   const stream = fs.createWriteStream(pathFile);
@@ -9,6 +7,16 @@ const writeFile = (pathFile, content) => {
   console.log('Success write file: ', pathFile);
 };
 
+const readFile = async (pathFile) => {
+  try {
+    return await fs.promises.readFile(pathFile, 'utf8');
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
+
 module.exports = {
   writeFile,
+  readFile,
 };

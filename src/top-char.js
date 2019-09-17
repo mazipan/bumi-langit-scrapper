@@ -2,9 +2,9 @@ const puppeteer = require('puppeteer');
 const constant = require('./constant');
 const fileUtil = require('./file-util');
 
-async function scrapeChar(pageToScrap) {
+async function scrapeListOfChar(pageToScrap) {
   const browser = await puppeteer.launch({ headless: true });
-  console.log('version: ', await browser.version());
+  console.log('> Browser version: ', await browser.version());
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 926 });
@@ -32,11 +32,29 @@ async function scrapeChar(pageToScrap) {
     return resArr
   });
 
-  console.log('page: ', pageToScrap, ' data: ', data);
+  console.log('> Get data from page ' + pageToScrap + '...');
   fileUtil.writeFile(`${constant.getOutputDir}/char${pageToScrap}.json`, JSON.stringify(data));
   await browser.close();
 }
 
+async function scrapeDetailChar (urlDetailPage) {
+
+}
+
+async function combineAllChar () {
+  let resAll = []
+  for(let i=0; i<constant.totalPage; i++) {
+    const res = await fileUtil.readFile(`${constant.getOutputDir}/char${i+1}.json`);
+    const resObj = JSON.parse(res);
+    resAll = [...resAll, ...resObj];
+  }
+
+  console.log('> Combine all data into one file');
+  fileUtil.writeFile(`${constant.getOutputDir}/char-all.json`, JSON.stringify(resAll));
+}
+
 module.exports = {
-  scrapeChar
+  scrapeListOfChar,
+  scrapeDetailChar,
+  combineAllChar,
 };
