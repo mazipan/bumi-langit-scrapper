@@ -1,0 +1,16 @@
+{
+  "name": "bumi-langit-scrapper",
+  "version": "1.0.0",
+  "description": "Bumi Langit Scrapper",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node ./index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Irfan Maulana <github.com/mazipan>",
+  "license": "MIT",
+  "dependencies": {
+    "app-root-dir": "^1.0.2",
+    "puppeteer": "^1.20.0"
+  }
+}
