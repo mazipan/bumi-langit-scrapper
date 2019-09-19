@@ -10,92 +10,97 @@ async function createBrowser () {
   return { browser, browserPage };
 }
 
-async function scrapeListOfChar(pageToScrap) {
+async function scrapeListOfChar(pageToScrap, store) {
   const { browser, browserPage } = await createBrowser();
   const PAGE_URL = constant.getCharPath;
   const urlWithPage = pageToScrap > 1 ? `${PAGE_URL}/page/${pageToScrap}` : PAGE_URL;
   await browserPage.goto(urlWithPage, { waitUntil: 'networkidle2' });
 
   let data = await browserPage.evaluate(() => {
-    const res = document.querySelectorAll('.container.container-content > .row:last-child > .col.l12.m12.s12 > .col.l3.m4.s6.char_temp');
-    const resArr = []
-    for (const property in res) {
-      if (res.hasOwnProperty(property)) {
-        const item = res[property];
-        if (item.querySelector) {
-          const link = item.querySelector('a');
-          const image = item.querySelector('img');
-          const name = item.querySelector('h6');
+    try {
+      const res = document.querySelectorAll('.container.container-content > .row:last-child > .col.l12.m12.s12 > .col.l3.m4.s6.char_temp');
+      const resArr = []
+      for (const property in res) {
+        if (res.hasOwnProperty(property)) {
+          const item = res[property];
+          if (item.querySelector) {
+            const link = item.querySelector('a');
+            const image = item.querySelector('img');
+            const name = item.querySelector('h6');
 
-          const generateId = (link) => {
-            return (link.toString())
-              .replace('https://bumilangit.com/en/characterspods/', '')
-              .replace(/[^\w\s]/gi, '');
+            const generateId = (link) => {
+              return (link.toString())
+                .replace('https://bumilangit.com/en/characterspods/', '')
+                .replace(/[^\w\s]/gi, '');
+            }
+
+            resArr.push({
+              id: generateId(link.href),
+              link: link.href,
+              image: image.src,
+              name: name.innerText,
+            })
           }
-
-          resArr.push({
-            id: generateId(link.href),
-            link: link.href,
-            image: image.src,
-            name: name.innerText,
-          })
         }
-      }
-    };
-    return resArr
+      };
+      return resArr
+    } catch (error) {
+      console.error('Error run selector: .container.container-content > .row:last-child > .col.l12.m12.s12 > .col.l3.m4.s6.char_temp');
+      return [];
+    }
   });
 
   console.log('> Get data from page ' + pageToScrap + '...');
-  fileUtil.writeFile(`${constant.getOutputDir}/char${pageToScrap}.json`, JSON.stringify(data));
-
+  store.addChars(data); // push data into store
   await browser.close();
 }
 
-function doScrapeWithTimeout (item, index) {
+function doScrapeWithTimeout ({ item, index, store, isLastItem }) {
   setTimeout(async () => {
     const { browser, browserPage } = await createBrowser();
     try {
       console.log('> Go to detail page:', item.id);
       await browserPage.goto(item.link, { waitUntil: 'networkidle2' });
       let dataDesc = await browserPage.evaluate(() => {
-        const descriptionDOM = document.querySelectorAll('div.container:nth-child(4) > div:nth-child(3) > div:nth-child(1)');
-        return descriptionDOM;
+        try {
+          const descriptionDOM = document.querySelector('div.container:nth-child(4) > div:nth-child(3) > div:nth-child(1) > p:nth-child(2)');
+          return descriptionDOM.innerText;
+        } catch (error) {
+          console.error('> Error querySelector for get description');
+          return '';
+        }
       });
-      fileUtil.writeFile(`${constant.getOutputDir}/detail/${item.id}.json`, JSON.stringify({ id: item.id, desc: dataDesc }));
+      store.setDetail(item.id, dataDesc);
+      fileUtil.writeFile(`${constant.getOutputDir}/detail/${item.id}.json`, JSON.stringify({ ...item, desc: dataDesc || '' }));
+      if (isLastItem) {
+        combineAllChar(store);
+      }
     } catch (error) {
       console.error('> Error open detail page', error);
     }
     await browser.close();
   }, 2000 * index)
 }
-async function scrapeDetailChar () {
-  const res = await fileUtil.readFile(`${constant.getOutputDir}/char-all.json`);
+
+async function scrapeDetailChar (store) {
   try {
-    const resArr = JSON.parse(res);
-    resArr.forEach(async (item, index) => {
-      if (item.id === 'gundala') {
-        doScrapeWithTimeout(item, 0);
-      }
+    store.getChars.forEach(async (item, index) => {
+      const isLastItem = (index === store.getChars.length - 1);
+      doScrapeWithTimeout({
+        item,
+        index,
+        store,
+        isLastItem
+      });
     });
   } catch (error) {
     console.error('> Error parsing data', error);
   }
 }
 
-async function combineAllChar () {
-  let resAll = []
-  for(let i=0; i<constant.totalPage; i++) {
-    const res = await fileUtil.readFile(`${constant.getOutputDir}/char${i+1}.json`);
-    try {
-      const resObj = JSON.parse(res);
-      resAll = [...resAll, ...resObj];
-    } catch (error) {
-      console.error('> Error parsing data', error);
-    }
-  }
-
+async function combineAllChar (store) {
   console.log('> Combine all data into one file');
-  fileUtil.writeFile(`${constant.getOutputDir}/char-all.json`, JSON.stringify(resAll));
+  fileUtil.writeFile(`${constant.getOutputDir}/characters.json`, JSON.stringify(store.getChars));
 }
 
 module.exports = {
