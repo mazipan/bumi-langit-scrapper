@@ -10,7 +10,7 @@ Scrapper website bumilangit.com with [Puppeteer](https://github.com/GoogleChrome
 
 ## JSON output
 
-See [https://github.com/mazipan/bumi-langit-scrapper/tree/master/output](this output directory)
+See [this output directory](https://github.com/mazipan/bumi-langit-scrapper/tree/master/output)
 
 ----
 
