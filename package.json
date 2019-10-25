@@ -11,6 +11,6 @@
   "license": "MIT",
   "dependencies": {
     "app-root-dir": "^1.0.2",
-    "puppeteer": "^1.20.0"
+    "puppeteer": "^2.0.0"
   }
 }
